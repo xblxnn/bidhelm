@@ -1,0 +1,8 @@
+/data/
+/bin/
+/dist/
+*.log
+.DS_Store
+/docs/handoffs/
+/docs/releases/
+__pycache__/

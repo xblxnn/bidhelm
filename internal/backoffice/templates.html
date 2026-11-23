@@ -1,0 +1,147 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{if .Title}}{{.Title}} · {{end}}BidHelm</title>
+  <link rel="stylesheet" href="/assets/brand.css">
+  <script src="/assets/htmx.min.js" defer></script>
+</head>
+<body>{{end}}
+
+{{define "wordmark"}}<span class="wordmark">bidhelm<span aria-hidden="true">.</span></span>{{end}}
+
+{{define "start"}}
+{{template "head" .}}
+<div class="app-shell">
+  <aside class="app-sidebar">
+    <a class="brand-link" href="/campaigns" aria-label="BidHelm home">{{template "wordmark" .}}</a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/sources" {{if eq .Title "Traffic Sources"}}aria-current="page"{{end}}>Traffic Sources</a>
+      <a href="/campaigns" {{if or (eq .Title "Campaigns") (eq .Title "Campaign")}}aria-current="page"{{end}}>Campaigns</a>
+    </nav>
+    <form action="/logout" method="post" class="logout-form">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <button type="submit" class="text-action">LOG OUT ↗</button>
+    </form>
+  </aside>
+  <main class="app-main">
+    <div id="publication-status" hx-get="/status" hx-trigger="every 3s" hx-swap="innerHTML">{{template "status" .}}</div>
+{{end}}
+
+{{define "end"}}
+    <p class="geo-attribution"><a href="https://db-ip.com" target="_blank" rel="noopener noreferrer">IP Geolocation by DB-IP</a></p>
+  </main>
+</div>
+</body>
+</html>{{end}}
+
+{{define "status"}}
+<div class="publication-status" role="status">
+  <span class="status-state"><span class="status-dot{{if not .Ready}} status-dot-warn{{end}}" aria-hidden="true"></span>{{if .Ready}}DSP ready{{else}}DSP not ready{{end}}</span>
+  <span>Saved revision: <strong>{{.Saved}}</strong> <span class="status-separator">/</span> Applied revision: <strong>{{.Applied}}</strong></span>
+</div>
+{{if .Error}}<div class="notice-error" role="alert">{{.Error}}</div>{{end}}
+{{end}}
+
+{{define "login"}}
+{{template "head" .}}
+<main class="login-page">
+  <form class="login-form" method="post" action="/login">
+    <div class="login-brand">{{template "wordmark" .}}</div>
+    <h1>Sign in.<span class="visually-hidden"> Sign in to BidHelm</span></h1>
+    {{if .Error}}<p class="form-error" role="alert">{{.Error}}</p>{{end}}
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <div class="field">
+      <label for="login">LOGIN</label>
+      <input id="login" name="login" autocomplete="username" required autofocus>
+    </div>
+    <div class="field">
+      <label for="password">PASSWORD</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+    </div>
+    <button class="button button-primary button-wide" type="submit"><span>Sign in</span><span aria-hidden="true">↗</span></button>
+  </form>
+</main>
+</body>
+</html>{{end}}
+
+{{define "sources"}}
+{{template "start" .}}
+<div class="page-heading">
+  <div><h1>Traffic Sources.</h1></div>
+</div>
+<section class="source-create" aria-labelledby="source-create-title">
+  <div class="section-intro"><span class="section-index">01 / CONNECT</span><h2 id="source-create-title">Create traffic source</h2></div>
+  <form method="post" action="/sources" class="source-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <div class="field"><label for="source-name">NAME</label><input id="source-name" name="name" required maxlength="200" placeholder="Source name"></div>
+    <div class="field"><label for="adapter">ADAPTER</label><select id="adapter" name="adapter"><option value="exads_json_pop">EXADS JSON Pop</option></select></div>
+    <button class="button button-primary" type="submit">Create source ↗</button>
+  </form>
+</section>
+<section class="index-section" aria-label="Traffic sources">
+  <div class="table-wrap"><table class="data-table source-table"><thead><tr><th scope="col">NAME</th><th scope="col">URL</th><th scope="col">ADAPTER</th></tr></thead><tbody>
+    {{range .Sources}}<tr><td class="item-name">{{.Name}}</td><td class="url"><code>{{$.BaseURL}}/source/{{.ID}}</code></td><td class="mono-cell">{{.Adapter}}</td></tr>
+    {{else}}<tr><td colspan="3" class="empty-state">No sources yet. Create your first source.</td></tr>{{end}}
+  </tbody></table></div>
+</section>
+{{template "end" .}}{{end}}
+
+{{define "campaigns"}}
+{{template "start" .}}
+<div class="page-heading page-heading-action">
+  <div><h1>Campaigns.</h1></div>
+  <a class="button button-primary" href="/campaign">+ New campaign ↗</a>
+</div>
+<section class="index-section" aria-label="Campaigns">
+  <div class="table-wrap"><table class="data-table campaigns-table"><thead><tr><th scope="col">CAMPAIGN / DESTINATION</th><th scope="col">STATUS</th><th scope="col">TARGETING</th><th scope="col">CPM</th><th scope="col"><span class="visually-hidden">Open</span></th></tr></thead><tbody>
+    {{range .Campaigns}}<tr>
+      <td><a class="campaign-name" href="/campaign?id={{.ID}}">{{.Name}}</a><span class="campaign-url url">{{.URL}}</span></td>
+      <td class="mono-cell">{{if .Active}}<span class="state-active">● ACTIVE</span>{{else}}○ STOPPED{{end}}</td>
+      <td class="mono-cell">{{if .Targeting.Countries}}{{join .Targeting.Countries}}{{else}}ALL{{end}} / {{if .Targeting.Platforms}}{{join .Targeting.Platforms}}{{else}}ALL{{end}}</td>
+      <td class="cpm-cell">${{cpm .CPM}}</td>
+      <td><a class="row-arrow" href="/campaign?id={{.ID}}" aria-label="Edit {{.Name}}">↗</a></td>
+    </tr>{{else}}<tr><td colspan="5" class="empty-state">No campaigns yet. Create your first campaign.</td></tr>{{end}}
+  </tbody></table></div>
+</section>
+{{template "end" .}}{{end}}
+
+{{define "campaign"}}
+{{template "start" .}}
+<div class="page-heading page-heading-action">
+  <div><div class="eyebrow"><a href="/campaigns">CAMPAIGNS</a> / {{if .Campaign.ID}}EDIT{{else}}NEW{{end}}</div><h1>{{if .Campaign.ID}}Edit campaign.{{else}}Create campaign.{{end}}</h1><p>Bid, destination and targeting.</p></div>
+  {{if .Campaign.ID}}<span class="heading-state">{{if .Campaign.Active}}● ACTIVE{{else}}○ STOPPED{{end}}</span>{{end}}
+</div>
+<form method="post" action="/campaign" class="campaign-form">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <input type="hidden" name="id" value="{{.Campaign.ID}}">
+  <div class="form-columns">
+    <div class="form-column">
+      <section class="form-section" aria-labelledby="campaign-basics"><div class="section-intro"><span class="section-index">01 / CAMPAIGN</span><h2 id="campaign-basics">Campaign</h2></div>
+        <div class="field"><label for="name">NAME</label><input name="name" id="name" value="{{.Campaign.Name}}" required maxlength="200"></div>
+        <div class="field-row"><div class="field"><label for="cpm">CPM, USD</label><input name="cpm" id="cpm" type="number" step="0.01" min="0.01" max="1000000000" value="{{.CPMInput}}" required></div><div class="field"><label for="active">STATUS AFTER SAVING</label><select name="active" id="active"><option value="off" {{if not .Campaign.Active}}selected{{end}}>Stopped</option><option value="on" {{if .Campaign.Active}}selected{{end}}>Active</option></select></div></div>
+        <div class="field"><label for="url">HTTPS DESTINATION URL</label><input name="url" id="url" type="url" value="{{.Campaign.URL}}" pattern="https://.*" required><p class="field-help">Placement in tracker: https://tracker.example/click?site={placement_id}. The macro is allowed only in query parameter values.</p></div>
+      </section>
+      <section class="form-section" aria-labelledby="placement-ip"><div class="section-intro"><span class="section-index">03 / FILTERS</span><h2 id="placement-ip">Placement and IP</h2></div>
+        <label class="toggle-line" for="placement_enabled"><input type="checkbox" name="placement_enabled" id="placement_enabled" {{if .Campaign.Targeting.Placement.Enabled}}checked{{end}}> Placement targeting</label>
+        <div class="field"><label for="placement_mode">MODE</label><select name="placement_mode" id="placement_mode"><option value="blacklist" {{if ne .Campaign.Targeting.Placement.Mode "whitelist"}}selected{{end}}>Blacklist — exclude matches</option><option value="whitelist" {{if eq .Campaign.Targeting.Placement.Mode "whitelist"}}selected{{end}}>Whitelist — include matches only</option></select></div>
+        <div class="field"><label for="placement_entries">PLACEMENTS</label><textarea name="placement_entries" id="placement_entries" rows="4">{{.PlacementEntries}}</textarea><p class="field-help">One per line; exact and case-sensitive. Disabled keeps this list. An empty whitelist matches none.</p></div>
+        <label class="toggle-line" for="ip_enabled"><input type="checkbox" name="ip_enabled" id="ip_enabled" {{if .Campaign.Targeting.IP.Enabled}}checked{{end}}> IP targeting</label>
+        <div class="field"><label for="ip_entries">IP ADDRESSES AND CIDR NETWORKS</label><textarea name="ip_entries" id="ip_entries" rows="4" aria-describedby="ip_help" placeholder="131.34.123.159&#10;131.34.123.0/24&#10;2001:db8::/32">{{.IPEntries}}</textarea><p class="field-help" id="ip_help">One per line. Disabled keeps the list and allows all traffic; enabled requires a match.</p></div>
+      </section>
+    </div>
+    <div class="form-column">
+      <section class="form-section" aria-labelledby="campaign-targeting"><div class="section-intro"><span class="section-index">02 / TARGETING</span><h2 id="campaign-targeting">Targeting</h2></div>
+        <p class="section-help">No selection means All. Hold Ctrl / Cmd for multiple values. Enter major versions separated by commas.</p>
+        <div class="field"><label for="countries">COUNTRIES (ISO)</label><select multiple name="countries" id="countries" data-all><option value="ALL" {{if not .Campaign.Targeting.Countries}}selected{{end}}>ALL</option>{{range .Countries}}<option value="{{.}}" {{if selected $.Campaign.Targeting.Countries .}}selected{{end}}>{{.}}</option>{{end}}</select></div>
+        <div class="field"><label for="platforms">PLATFORM</label><select multiple name="platforms" id="platforms" data-all><option value="ALL" {{if not .Campaign.Targeting.Platforms}}selected{{end}}>ALL</option><option value="mobile" {{if selected .Campaign.Targeting.Platforms "mobile"}}selected{{end}}>Mobile</option><option value="desktop" {{if selected .Campaign.Targeting.Platforms "desktop"}}selected{{end}}>Desktop</option></select></div>
+        <div class="field-row"><div class="field"><label for="browsers">BROWSERS</label><select multiple name="browsers" id="browsers">{{range .Browsers}}<option {{if selected $.Campaign.Targeting.Browsers .}}selected{{end}}>{{.}}</option>{{end}}</select></div><div class="field"><label for="browser_majors">BROWSER MAJOR VERSIONS</label><input id="browser_majors" name="browser_majors" placeholder="120,121" value="{{join .Campaign.Targeting.BrowserMajors}}"></div></div>
+        <div class="field-row"><div class="field"><label for="os">OPERATING SYSTEMS</label><select multiple name="os" id="os">{{range .OS}}<option {{if selected $.Campaign.Targeting.OS .}}selected{{end}}>{{.}}</option>{{end}}</select></div><div class="field"><label for="os_majors">OS MAJOR VERSIONS</label><input id="os_majors" name="os_majors" placeholder="13,17" value="{{join .Campaign.Targeting.OSMajors}}"></div></div>
+      </section>
+    </div>
+  </div>
+  <div class="form-actions"><span>SAVED {{.Saved}} / APPLIED {{.Applied}}</span><div><a class="button button-secondary" href="/campaigns">Cancel</a><button class="button button-primary" type="submit">Save and apply ↗</button></div></div>
+</form>
+<script defer src="/assets/targeting.js"></script>
+{{template "end" .}}{{end}}
