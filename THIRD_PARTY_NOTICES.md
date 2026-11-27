@@ -42,3 +42,7 @@ The synthetic MaxMind fixture under `internal/runtime/testdata` is used only by 
 ## Container packages
 
 The runtime image is based on Debian. Package copyrights and licenses are retained under `/usr/share/doc` in the image; Debian package versions are determined by its build.
+
+## Container packages
+
+The Debian-based image includes Nginx (BSD-2-Clause), installed from Debian packages. Package copyright and license notices, including those for bundled modules, are retained under `/usr/share/doc/` in the image.

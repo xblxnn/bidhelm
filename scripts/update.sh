@@ -43,7 +43,7 @@ if ! mv "$root/data/$backup" "$root/backups/$backup" ||
  echo 'Cannot retain backup; original container restarted.' >&2
  exit 1
 fi
-failed(){ echo "Update failed. Restore: https://github.com/xblxnn/bidhelm/blob/v0.1.0/docs/operations.md#restore. Backup: $root/backups/$backup; old image: $old" >&2; }
+failed(){ echo "Update failed. Restore: https://github.com/xblxnn/bidhelm/blob/v0.1.1/docs/operations.md#restore. Backup: $root/backups/$backup; old image: $old" >&2; }
 trap failed ERR
 docker rm "$container" >/dev/null
 docker run -d --name bidhelm --restart unless-stopped --env-file "$root/app.env" -p "$publication" -v "$root/data:/data" "$new" >/dev/null

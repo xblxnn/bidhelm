@@ -8,7 +8,9 @@ terminal. The default public URL is `http://<server-ip>` on port 80.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `DSP_IMAGE` | `ghcr.io/xblxnn/bidhelm:0.1.0` | Published image tag or digest |
+| `DSP_IMAGE` | `ghcr.io/xblxnn/bidhelm:0.1.1` | Published image tag or digest |
+| `DSP_RPS` | `3000` | Total advertising admission rate per second, shared by all sources |
+| `DSP_BURST` | `100` | Excess advertising requests allowed immediately during a short burst |
 | `DSP_PORT` | `80` | Host TCP port, 1–65535 |
 | `DSP_BIND_IP` | `0.0.0.0` | Host IPv4 binding |
 | `DSP_IP` | First host address | Advertised address or hostname |
@@ -17,7 +19,7 @@ terminal. The default public URL is `http://<server-ip>` on port 80.
 | `MMDB_FILE` | Bundled database | Path to your country MMDB on the host |
 
 `DSP_HOME/data` contains the SQLite database and internal token. `app.env`
-contains the advertised URL. `initial-access.txt` contains initial credentials
+contains the advertised URL and ingress settings. `initial-access.txt` contains initial credentials
 and is root-readable only. It does not track later password changes.
 
 The updater discovers the existing data path and networking from the container.
@@ -33,7 +35,8 @@ container using the same image, data mount, binding and environment file.
 The setting enables secure cookies and correct source URLs. Make sure the SSP
 can reach `/source/{id}` and limit administrative access at your proxy/firewall.
 
-The public listener serves both the backoffice and source endpoints.
+The public Nginx listener serves both the backoffice and source endpoints, forwarding admitted traffic to DSP on loopback port 8083.
+See [incoming traffic limit](../README.md#incoming-traffic-limit) for the shared 3000r/s default, empty 204 rejections, burst behavior and how to change the settings.
 `/internal/*` returns 404 on the public port. Internal configuration and metrics
 are available only inside the container with a bearer token.
 

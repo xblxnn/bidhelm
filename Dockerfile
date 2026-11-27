@@ -7,7 +7,7 @@ RUN go mod download
 COPY . .
 RUN test ! -e /src/docs/handoffs && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -buildvcs=false -trimpath -o /out/backoffice ./cmd/backoffice && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -buildvcs=false -trimpath -o /out/dsp ./cmd/dsp
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tini bash curl && rm -rf /var/lib/apt/lists/* && useradd -u 10001 -m app
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tini bash curl nginx-light && rm -rf /var/lib/apt/lists/* && useradd -u 10001 -m app
 COPY --from=build /out/ /app/
 COPY assets/geo/dbip-country-lite.mmdb /app/geo/country.mmdb
 COPY LICENSE THIRD_PARTY_NOTICES.md /app/licenses/
@@ -16,8 +16,9 @@ COPY internal/backoffice/assets/*LICENSE internal/backoffice/assets/fonts/*LICEN
 COPY third_party/ /app/licenses/dependencies/
 COPY scripts/install.sh scripts/update.sh scripts/metrics.sh /app/
 COPY scripts/container-entrypoint.sh /app/entrypoint.sh
+COPY scripts/nginx.conf.template /app/nginx.conf.template
 RUN chmod 755 /app/entrypoint.sh && mkdir /data && chown app:app /data
-ENV DB_PATH=/data/app.db TOKEN_FILE=/data/internal-token LISTEN_ADDR=0.0.0.0:8080
+ENV DB_PATH=/data/app.db TOKEN_FILE=/data/internal-token LISTEN_ADDR=127.0.0.1:8083 DSP_RPS=3000 DSP_BURST=100
 USER app
 VOLUME /data
 EXPOSE 8080

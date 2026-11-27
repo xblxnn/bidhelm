@@ -11,10 +11,10 @@ You need a fresh **Ubuntu 24.04 or Debian 12/13 server, x86_64**, root access, a
 
 If `curl` is unavailable, install it with `sudo apt-get update && sudo apt-get install -y curl`.
 
-Download the installer for **0.1.0**, then run it:
+Download the installer for **0.1.1**, then run it:
 
 ```sh
-curl -fsSLo bidhelm-bootstrap.sh https://raw.githubusercontent.com/xblxnn/bidhelm/v0.1.0/scripts/bootstrap.sh
+curl -fsSLo bidhelm-bootstrap.sh https://raw.githubusercontent.com/xblxnn/bidhelm/v0.1.1/scripts/bootstrap.sh
 sudo bash bidhelm-bootstrap.sh
 ```
 
@@ -45,8 +45,8 @@ Only the most specific matching campaigns compete on price. A valid request with
 Updates are manual. Choose a published version, download its update script, and set the matching image:
 
 ```sh
-curl -fsSLo bidhelm-update.sh https://raw.githubusercontent.com/xblxnn/bidhelm/v0.1.0/scripts/update.sh
-sudo env DSP_IMAGE=ghcr.io/xblxnn/bidhelm:0.1.0 bash bidhelm-update.sh
+curl -fsSLo bidhelm-update.sh https://raw.githubusercontent.com/xblxnn/bidhelm/v0.1.1/scripts/update.sh
+sudo env DSP_IMAGE=ghcr.io/xblxnn/bidhelm:0.1.1 bash bidhelm-update.sh
 ```
 
 For a future release, replace **both** version values. The updater preserves data and networking and creates a SQLite backup before replacing the container. Read [backup and restore](docs/operations.md#restore) before upgrading. Publishing a new release never updates an installed server automatically.
@@ -68,3 +68,24 @@ Open the local URL printed by the script. Local data and credentials stay in the
 ## License
 
 All rights reserved. See [LICENSE](LICENSE) for permitted self-hosted use and [third-party notices](THIRD_PARTY_NOTICES.md) for dependencies and data.
+
+## Incoming traffic limit
+
+Nginx inside the BidHelm container admits **3,000 advertising requests per second in total**, shared by all sources and clients. A short burst of 100 excess requests is allowed without waiting. Further requests receive **HTTP 204 No Content with an empty body**, before reaching the DSP, JSON parsing, Geo/UA enrichment or auction. This is an average rate with a burst allowance, rather than a strict count in every one-second window. No request queue is used.
+
+The limit applies only to `/source/`. Backoffice and health checks do not consume this allowance. DSP metrics count only requests forwarded to the application; container logs distinguish rate-limit rejections (`limit=REJECTED`, no upstream) from ordinary DSP no-bids. Each container has its own limit, reset on restart.
+
+For a new installation, set `DSP_RPS` and optionally `DSP_BURST`:
+
+```bash
+sudo env DSP_RPS=5000 DSP_BURST=100 bash bidhelm-bootstrap.sh
+```
+
+To change an existing installation, edit `/opt/bidhelm/app.env` (or `$DSP_HOME/app.env`) as root and add or update:
+
+```text
+DSP_RPS=5000
+DSP_BURST=100
+```
+
+Then recreate the container with the documented update command and the desired image version. A plain `docker restart` does not reload the environment file. Updates preserve these settings; older installations without them use 3000 and 100. Both settings must be positive decimal integers from 1 to 9999999. Higher limits require sufficient server capacity.

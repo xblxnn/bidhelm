@@ -8,7 +8,7 @@ umask 077
 . /etc/os-release
 [[ "$ID" == ubuntu || "$ID" == debian ]] || { echo 'Ubuntu/Debian required'; exit 1; }
 [[ "$(uname -m)" == x86_64 ]] || { echo 'x86_64 required'; exit 1; }
-export DSP_IMAGE="${DSP_IMAGE:-ghcr.io/xblxnn/bidhelm:0.1.0}"
+export DSP_IMAGE="${DSP_IMAGE:-ghcr.io/xblxnn/bidhelm:0.1.1}"
 command -v docker >/dev/null || { apt-get update; apt-get install -y docker.io; systemctl enable --now docker; }
 docker info >/dev/null
 if docker container inspect bidhelm >/dev/null 2>&1 || docker container inspect dsp-compact >/dev/null 2>&1; then

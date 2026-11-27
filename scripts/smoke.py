@@ -69,6 +69,21 @@ if os.environ.get('LOADCHECK') == '1':
     for unique in ('false', 'true'):
         subprocess.run(['go', 'run', './cmd/loadtest', '-url', base + '/source/' + source,
                         '-duration', '5s', '-rps', '10000', '-unique-ua=' + unique], check=True)
+if os.environ.get('INGRESS_LOADCHECK') == '1':
+    for unique in ('false', 'true'):
+        output = subprocess.check_output(['go', 'run', './cmd/loadtest', '-url', base + '/source/' + source,
+                                          '-duration', '5s', '-rps', '10000', '-unique-ua=' + unique], text=True)
+        result = json.loads(output)
+        codes = result['http_statuses']
+        assert result['failed'] == 0, result
+        assert set(codes) <= {'200', '204'}, result
+        assert codes.get('200', 0) > 0, result
+        # Unique UA parsing may saturate the DSP below the ingress ceiling.
+        if unique == 'false':
+            assert codes.get('204', 0) > 0, result
+        assert codes['200'] <= 3000 * result['elapsed_seconds'] + 200, result
+        print('PASS: default 3000r/s ingress, unique_ua=' + unique + ' ' + output.strip())
+        time.sleep(.2)
 # A matching narrower campaign wins even at the lower CPM.
 form.update({'id': campaign, 'cpm': '1.2', 'ip_enabled': 'on', 'ip_entries': '81.2.69.159/24'})
 request('/campaign', form)

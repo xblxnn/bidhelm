@@ -10,6 +10,10 @@ umask 077
 [[ "$(uname -m)" == x86_64 ]] || { echo 'x86_64 required'; exit 1; }
 : "${DSP_IMAGE:?Set DSP_IMAGE to the built/published image tag or digest}"
 # Host publication settings; the application continues to listen on container port 8080.
+for setting in DSP_RPS DSP_BURST; do
+ value="${!setting:-}"
+ [[ -z "$value" || "$value" =~ ^[1-9][0-9]{0,6}$ ]] || { echo "$setting must be an integer from 1 to 9999999"; exit 1; }
+done
 port="${DSP_PORT:-80}"
 bind_ip="${DSP_BIND_IP:-0.0.0.0}"
 [[ "$port" =~ ^[0-9]{1,5}$ ]] && ((10#$port >= 1 && 10#$port <= 65535)) || { echo 'DSP_PORT must be an integer from 1 to 65535'; exit 1; }
@@ -53,7 +57,7 @@ if [[ -n "${password:-}" ]]; then
  printf 'Backoffice: %s\nLogin: %s\nPassword: %s\n' "$public" "$login" "$password" > "$root/initial-access.txt"
  chmod 600 "$root/initial-access.txt"
 fi
-printf 'PUBLIC_URL=%s\n' "$public" > "$root/app.env"
+printf 'PUBLIC_URL=%s\nDSP_RPS=%s\nDSP_BURST=%s\n' "$public" "${DSP_RPS:-3000}" "${DSP_BURST:-100}" > "$root/app.env"
 docker run -d --name bidhelm --restart unless-stopped --env-file "$root/app.env" -p "$bind_ip:$port:8080" -v "$root/data:/data" "$DSP_IMAGE" >/dev/null
 for ((i=0;i<30;i++)); do
  if docker exec bidhelm curl --max-time 2 -fsS http://127.0.0.1:8080/health/live >/dev/null 2>&1 &&
