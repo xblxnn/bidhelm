@@ -8,7 +8,7 @@ terminal. The default public URL is `http://<server-ip>` on port 80.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `DSP_IMAGE` | `ghcr.io/xblxnn/bidhelm:0.1.1` | Published image tag or digest |
+| `DSP_IMAGE` | `ghcr.io/xblxnn/bidhelm:0.1.2` | Published image tag or digest |
 | `DSP_RPS` | `3000` | Total advertising admission rate per second, shared by all sources |
 | `DSP_BURST` | `100` | Excess advertising requests allowed immediately during a short burst |
 | `DSP_PORT` | `80` | Host TCP port, 1–65535 |

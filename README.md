@@ -11,10 +11,10 @@ You need a fresh **Ubuntu 24.04 or Debian 12/13 server, x86_64**, root access, a
 
 If `curl` is unavailable, install it with `sudo apt-get update && sudo apt-get install -y curl`.
 
-Download the installer for **0.1.1**, then run it:
+Download the installer for **0.1.2**, then run it:
 
 ```sh
-curl -fsSLo bidhelm-bootstrap.sh https://raw.githubusercontent.com/xblxnn/bidhelm/v0.1.1/scripts/bootstrap.sh
+curl -fsSLo bidhelm-bootstrap.sh https://raw.githubusercontent.com/xblxnn/bidhelm/v0.1.2/scripts/bootstrap.sh
 sudo bash bidhelm-bootstrap.sh
 ```
 
@@ -45,8 +45,8 @@ Only the most specific matching campaigns compete on price. A valid request with
 Updates are manual. Choose a published version, download its update script, and set the matching image:
 
 ```sh
-curl -fsSLo bidhelm-update.sh https://raw.githubusercontent.com/xblxnn/bidhelm/v0.1.1/scripts/update.sh
-sudo env DSP_IMAGE=ghcr.io/xblxnn/bidhelm:0.1.1 bash bidhelm-update.sh
+curl -fsSLo bidhelm-update.sh https://raw.githubusercontent.com/xblxnn/bidhelm/v0.1.2/scripts/update.sh
+sudo env DSP_IMAGE=ghcr.io/xblxnn/bidhelm:0.1.2 bash bidhelm-update.sh
 ```
 
 For a future release, replace **both** version values. The updater preserves data and networking and creates a SQLite backup before replacing the container. Read [backup and restore](docs/operations.md#restore) before upgrading. Publishing a new release never updates an installed server automatically.

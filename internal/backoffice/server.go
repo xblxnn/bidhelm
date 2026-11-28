@@ -120,7 +120,11 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	}
 	c, e := r.Cookie("login_csrf")
 	if e != nil || !equal(c.Value, r.FormValue("csrf")) {
-		http.Error(w, "invalid CSRF", 403)
+		token := model.ID()
+		s.cookie(w, "login_csrf", token, 600)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusForbidden)
+		s.render(w, "login", page{CSRF: token, Error: "Your sign-in form has expired. Please enter your login and password again."})
 		return
 	}
 	if !s.Store.Authenticate(r.FormValue("login"), r.FormValue("password")) {

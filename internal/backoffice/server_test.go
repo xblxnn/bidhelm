@@ -166,3 +166,68 @@ func TestPublisherRetryAndRestart(t *testing.T) {
 		t.Fatal("restart not restored")
 	}
 }
+
+// Expired or stale sign-in forms must recover without accepting their credentials.
+func TestLoginCSRFRecovery(t *testing.T) {
+	for _, scenario := range []struct{ name, cookie, token string }{
+		{"expired cookie", "", strings.Repeat("a", 48)},
+		{"mismatched token", strings.Repeat("b", 48), strings.Repeat("a", 48)},
+		{"missing token", strings.Repeat("b", 48), ""},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			s, err := store.Open(filepath.Join(t.TempDir(), "db"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer s.DB.Close()
+			if err := s.Init("admin", "long-password-123"); err != nil {
+				t.Fatal(err)
+			}
+			ts := httptest.NewServer((&Server{Store: s}).Handler())
+			defer ts.Close()
+			jar, _ := cookiejar.New(nil)
+			client := &http.Client{Jar: jar, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}
+			u, _ := url.Parse(ts.URL)
+			if scenario.cookie != "" {
+				jar.SetCookies(u, []*http.Cookie{{Name: "login_csrf", Value: scenario.cookie, Path: "/"}})
+			}
+			res, err := client.PostForm(ts.URL+"/login", url.Values{"csrf": {scenario.token}, "login": {"admin"}, "password": {"long-password-123"}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			body, _ := io.ReadAll(res.Body)
+			res.Body.Close()
+			if res.StatusCode != http.StatusForbidden || !strings.HasPrefix(res.Header.Get("Content-Type"), "text/html") || !strings.Contains(string(body), "Your sign-in form has expired.") {
+				t.Fatalf("unexpected recovery: %d %s", res.StatusCode, body)
+			}
+			match := regexp.MustCompile(`name="csrf" value="([a-f0-9]+)"`).FindSubmatch(body)
+			if len(match) != 2 {
+				t.Fatalf("missing replacement form: %s", body)
+			}
+			token := string(match[1])
+			if token == scenario.token || token == scenario.cookie {
+				t.Fatal("reused stale token")
+			}
+			var cookie *http.Cookie
+			for _, c := range res.Cookies() {
+				if c.Name == "session" {
+					t.Fatal("authenticated stale form")
+				}
+				if c.Name == "login_csrf" {
+					cookie = c
+				}
+			}
+			if cookie == nil || cookie.Value != token || cookie.MaxAge != 600 || !cookie.HttpOnly || cookie.SameSite != http.SameSiteStrictMode {
+				t.Fatalf("invalid replacement cookie: %+v", cookie)
+			}
+			res, err = client.PostForm(ts.URL+"/login", url.Values{"csrf": {token}, "login": {"admin"}, "password": {"long-password-123"}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			res.Body.Close()
+			if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/sources" {
+				t.Fatalf("retry failed: %d", res.StatusCode)
+			}
+		})
+	}
+}
